@@ -36,12 +36,14 @@ public class PlayerMove : NetworkBehaviour
 
     private void Update()
     {
+        // Solo el dueño del objeto lee el teclado
         if (!IsOwner) return;
+
         isBoosting = Input.GetKey(KeyCode.LeftShift);
     }
-
     private void FixedUpdate()
     {
+        // Solo el dueño del objeto aplica movimiento físico
         if (!IsOwner) return;
 
         HandleMovement();
@@ -51,18 +53,13 @@ public class PlayerMove : NetworkBehaviour
 
     private void HandleMovement()
     {
-        // Obtenemos el input vertical (W/S o flechas Arriba/Abajo)
+        // Ambos usan "Vertical", pero cada quien en su propia computadora
         float moveInput = Input.GetAxis("Vertical");
 
         float targetVel = isBoosting ? baseSpeed * boostMultiplier : baseSpeed;
-
-        // Solo calculamos velocidad si hay input, si no, intentamos frenar (0)
         Vector3 desiredVelocity = (moveInput != 0) ? transform.forward * moveInput * targetVel : Vector3.zero;
 
-        // Si no hay input, usamos la decceleration para frenar
-        float lerpStep = (moveInput != 0) ? acceleration : decceleration;
-
-        rb.velocity = Vector3.Lerp(rb.velocity, desiredVelocity, lerpStep * Time.fixedDeltaTime);
+        rb.velocity = Vector3.Lerp(rb.velocity, desiredVelocity, acceleration * Time.fixedDeltaTime);
     }
 
     private void HandleTurning()
