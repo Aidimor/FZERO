@@ -15,6 +15,8 @@ public class NetworkUI : MonoBehaviour
 
     [SerializeField] private GameObject _menuParent;
 
+    [SerializeField] private GameObject[] _allCamaras;
+
     private void Start()
     {
         // Limpiamos el texto al iniciar
@@ -22,48 +24,65 @@ public class NetworkUI : MonoBehaviour
     }
 
     // Se asigna al evento OnClick del botón "Host" en el Inspector
-    public async void ClickHost()
+    //public async void ClickHost()
+    //{
+    //    if (RelayManager.Instance == null)
+    //    {
+    //        Debug.LogError("No se encontró el RelayManager en la escena.");
+    //        return;
+    //    }
+
+    //    codeDisplayText.text = "Generando código...";
+
+    //    // El código de 6 letras se pide a los servidores de Unity
+    //    string code = await RelayManager.Instance.CreateRelay();
+
+    //    if (!string.IsNullOrEmpty(code))
+    //    {
+    //        codeDisplayText.text = "CÓDIGO: " + code;
+    //        Debug.Log("Código para compartir: " + code);
+    //        //_allCamaras[0].GetComponent<CameraFollow>().transform = 
+    //        _menuParent.SetActive(false);
+    //    }
+    //    else
+    //    {
+    //        codeDisplayText.text = "Error al crear Relay";
+    //    }
+    //}
+
+    //// Se asigna al evento OnClick del botón "Client" en el Inspector
+    //public void ClickClient()
+    //{
+    //    if (RelayManager.Instance == null) return;
+
+    //    string code = joinCodeInput.text;
+
+    //    if (!string.IsNullOrEmpty(code) && code.Length >= 6)
+    //    {
+    //        RelayManager.Instance.JoinRelay(code);
+    //        codeDisplayText.text = "Uniéndose...";
+    //        _menuParent.SetActive(false);
+    //    }
+    //    else
+    //    {
+    //        Debug.LogError("El código debe tener al menos 6 caracteres.");
+    //        codeDisplayText.text = "Código Inválido";
+    //    }
+    //}
+
+    public void ClickHostLocal()
     {
-        if (RelayManager.Instance == null)
-        {
-            Debug.LogError("No se encontró el RelayManager en la escena.");
-            return;
-        }
-
-        codeDisplayText.text = "Generando código...";
-
-        // El código de 6 letras se pide a los servidores de Unity
-        string code = await RelayManager.Instance.CreateRelay();
-
-        if (!string.IsNullOrEmpty(code))
-        {
-            codeDisplayText.text = "CÓDIGO: " + code;
-            Debug.Log("Código para compartir: " + code);
-            _menuParent.SetActive(false);
-        }
-        else
-        {
-            codeDisplayText.text = "Error al crear Relay";
-        }
+        // Esto ignora Relay y usa la IP 127.0.0.1 configurada en el Inspector
+        NetworkManager.Singleton.StartHost();
+        Debug.Log("Host Local Iniciado");
+        //_menuParent.SetActive(false);
     }
 
-    // Se asigna al evento OnClick del botón "Client" en el Inspector
-    public void ClickClient()
+    public void ClickClientLocal()
     {
-        if (RelayManager.Instance == null) return;
-
-        string code = joinCodeInput.text;
-
-        if (!string.IsNullOrEmpty(code) && code.Length >= 6)
-        {
-            RelayManager.Instance.JoinRelay(code);
-            codeDisplayText.text = "Uniéndose...";
-            _menuParent.SetActive(false);
-        }
-        else
-        {
-            Debug.LogError("El código debe tener al menos 6 caracteres.");
-            codeDisplayText.text = "Código Inválido";
-        }
+        // Esto busca el Host en tu propia PC
+        NetworkManager.Singleton.StartClient();
+        Debug.Log("Cliente Local Buscando Host...");
+        _menuParent.SetActive(false);
     }
 }
