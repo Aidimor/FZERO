@@ -8,7 +8,7 @@ public class PlayerCameraAssigner : NetworkBehaviour
         if (IsOwner)
         {
             CameraFollow cam = FindFirstObjectByType<CameraFollow>();
-            if (cam != null) cam.SetTarget(this.transform);
+            if (cam != null) cam.SetTarget(this.transform.GetComponent<PlayerMove>()._camaraPos);
         }
     }
 }

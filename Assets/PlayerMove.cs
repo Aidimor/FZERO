@@ -18,6 +18,7 @@ public class PlayerMove : NetworkBehaviour
 
     [Header("Referencias Visuales")]
     public GameObject _playerSphere;
+    public bool _available;
 
     // VARIABLE DE RED: Sincroniza el color automáticamente
     // El servidor escribe (el Spawner), todos leen.
@@ -29,6 +30,7 @@ public class PlayerMove : NetworkBehaviour
 
     private Rigidbody rb;
     private bool isBoosting = false;
+    public Transform _camaraPos;
 
     public override void OnNetworkSpawn()
     {
@@ -84,13 +86,17 @@ public class PlayerMove : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        HandleMovement();
-        HandleTurning();
-        HandleDownforce();
+        if (_available)
+        {
+            HandleMovement();
+            HandleTurning();
+            HandleDownforce();
+        }
+  
     }
 
     private void HandleMovement()
-    {
+    {   
         float moveInput = Input.GetAxis("Vertical");
         float targetVel = isBoosting ? baseSpeed * boostMultiplier : baseSpeed;
         Vector3 desiredVelocity = (moveInput != 0) ? transform.forward * moveInput * targetVel : Vector3.zero;

@@ -13,7 +13,7 @@ public class NetworkUI : MonoBehaviour
     [SerializeField] private Button hostButton;
     [SerializeField] private Button clientButton;
 
-    [SerializeField] private GameObject _menuParent;
+    public GameObject _menuParent;
 
     [SerializeField] private GameObject[] _allCamaras;
 
@@ -83,6 +83,6 @@ public class NetworkUI : MonoBehaviour
         // Esto busca el Host en tu propia PC
         NetworkManager.Singleton.StartClient();
         Debug.Log("Cliente Local Buscando Host...");
-        _menuParent.SetActive(false);
+        //_menuParent.SetActive(false);
     }
 }

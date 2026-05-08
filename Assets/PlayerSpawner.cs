@@ -1,36 +1,25 @@
 using Unity.Netcode;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 
 public class PlayerSpawner : NetworkBehaviour
 {
     [SerializeField] private NetworkUI _scriptNetUI;
     [Header("Puntos de Aparición")]
-    [SerializeField] private Transform[] spawnPoints;
+    public Transform[] spawnPoints;
 
-    // Esta lista ahora se llenará automáticamente
     public List<GameObject> _allPlayers = new List<GameObject>();
-    public int _onPlayerID;
 
     [Header("Ajustes Visuales")]
     public Color[] _playerColors;
-
-    public void Start()
-    {
-        _scriptNetUI.ClickHostLocal();
-    }
 
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-
-            if (IsHost)
-            {
-                Debug.Log("<color=yellow><b>[SISTEMA]: Se ha iniciado el Servidor. ¡PLAYER 1 (Host) detectado!</b></color>");
-                OnClientConnected(NetworkManager.Singleton.LocalClientId);
-            }
+            if (IsHost) OnClientConnected(NetworkManager.Singleton.LocalClientId);
         }
     }
 
@@ -38,42 +27,25 @@ public class PlayerSpawner : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        int playerNumber = NetworkManager.Singleton.ConnectedClientsList.Count;
-
-        if (playerNumber > 1)
-        {
-            Debug.Log($"<color=cyan><b>[SISTEMA]: ¡PLAYER {playerNumber} (Cliente) conectado! ID: {clientId}</b></color>");
-        }
-
         if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var clientData))
         {
             NetworkObject playerNetworkObject = clientData.PlayerObject;
-
             if (playerNetworkObject != null)
             {
-                // --- AGREGAR A LA LISTA ---
                 GameObject playerObj = playerNetworkObject.gameObject;
-                if (!_allPlayers.Contains(playerObj)) // Evitamos duplicados
+                if (!_allPlayers.Contains(playerObj))
                 {
                     _allPlayers.Add(playerObj);
-                    SetPlayers();
-                    //Debug.Log($"<color=green>Jugador {clientId} añadido a la lista _allPlayers. Total: {_allPlayers.Count}</color>");
-                }
-                // --------------------------
-
-                int index = playerNumber - 1;
-
-                // Posicionamiento
-                if (index < spawnPoints.Length)
-                {
-                    playerNetworkObject.transform.position = spawnPoints[index].position;
-                    playerNetworkObject.transform.rotation = spawnPoints[index].rotation;
+                    int playerIndex = _allPlayers.Count - 1;
+                    SetPlayers(playerIndex);
+                    CheckMatchReady();
                 }
 
-                // Color
+                // Sincronización de color
+                int index = _allPlayers.Count - 1;
                 if (index < _playerColors.Length)
                 {
-                    PlayerMove playerScript = playerNetworkObject.GetComponent<PlayerMove>();
+                    PlayerMove playerScript = playerObj.GetComponent<PlayerMove>();
                     if (playerScript != null)
                     {
                         playerScript.PlayerColor.Value = _playerColors[index];
@@ -83,12 +55,62 @@ public class PlayerSpawner : NetworkBehaviour
         }
     }
 
-    // Es buena práctica limpiar la lista si el servidor se apaga
-    public override void OnNetworkDespawn()
+    private void CheckMatchReady()
     {
-        if (IsServer)
+        if (_allPlayers.Count == 2)
         {
-            _allPlayers.Clear();
+            // Iniciamos la corrutina SOLO en el servidor
+            StartCoroutine(StartRaceRoutine());
+        }
+    }
+
+    // Corrutina que corre en el Servidor para controlar los tiempos
+    private IEnumerator StartRaceRoutine()
+    {
+        // 1. Avisamos a todos que se preparen (Sets)
+        GameSetsClientRpc();
+
+        yield return new WaitForSeconds(2f); // Espera de 2 segundos para asegurar carga
+
+        // 2. Avisamos a todos que inicien (Starts)
+        GameStartsClientRpc();
+    }
+
+    [ClientRpc]
+    private void GameSetsClientRpc()
+    {
+        // Ocultar menú en todos los clientes
+        if (_scriptNetUI != null && _scriptNetUI._menuParent != null)
+            _scriptNetUI._menuParent.SetActive(false);
+
+        // Cada jugador local configura su propia vista o estado inicial si es necesario
+        Debug.Log("<color=yellow>Configurando partida...</color>");
+    }
+
+    [ClientRpc]
+    private void GameStartsClientRpc()
+    {
+        Debug.Log("<color=green>¡CARRERA INICIADA!</color>");
+
+        // BUSQUEDA DIRECTA: Como la lista del cliente está vacía, 
+        // buscamos todos los PlayerMove que existan en la escena del cliente
+        PlayerMove[] allMoves = GameObject.FindObjectsByType<PlayerMove>(FindObjectsSortMode.None);
+
+        foreach (PlayerMove move in allMoves)
+        {
+            move._available = true;
+
+            // Opcional: Aplicar color visualmente aquí también si no usas NetworkVariable
+            // Nota: Es mejor que el color se maneje por NetworkVariable para que sea automático
+        }
+    }
+
+    public void SetPlayers(int playerID)
+    {
+        if (playerID < _allPlayers.Count && playerID < spawnPoints.Length)
+        {
+            _allPlayers[playerID].transform.position = spawnPoints[playerID].position;
+            _allPlayers[playerID].transform.rotation = spawnPoints[playerID].rotation;
         }
     }
 
@@ -98,11 +120,5 @@ public class PlayerSpawner : NetworkBehaviour
         {
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
         }
-    }
-
-    public void SetPlayers()
-    {
-        _allPlayers[_onPlayerID].transform.position = spawnPoints[_onPlayerID].transform.position;
-        _allPlayers[_onPlayerID].SetActive(false);
     }
 }
